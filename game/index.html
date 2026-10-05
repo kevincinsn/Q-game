@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>魯米的萬聖節大逃脫</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- Start Screen -->
+        <div id="start-screen" class="screen">
+            <h1>🎃 魯米的萬聖節大逃脫 👻</h1>
+            <p>你好呀！我是魯米！來幫我逃出這個可愛的萬聖節密室吧！</p>
+            <div class="input-group">
+                <label for="player-name">請輸入你的名字代號：</label>
+                <input type="text" id="player-name" placeholder="例如：小紅帽" maxlength="10">
+            </div>
+            <div class="instructions">
+                <h3>🎮 怎麼玩？</h3>
+                <p>💻 電腦：使用鍵盤方向鍵 (上下左右) 移動。</p>
+                <p>📱 手機/平板：使用螢幕下方的虛擬搖桿，或是直接點擊畫面移動。</p>
+                <p>收集 <span class="emoji">🍬</span> 糖果 和 <span class="emoji">🎃</span> 南瓜 可以加分！</p>
+                <p>找到 <span class="emoji">🗝️</span> 鑰匙 才能打開門 <span class="emoji">🚪</span> 逃出去喔！</p>
+                <p>⏰ 你有 3 分鐘的時間！</p>
+            </div>
+            <button id="start-btn">開始遊戲</button>
+        </div>
+
+        <!-- Game Screen -->
+        <div id="game-screen" class="screen hidden">
+            <div id="hud">
+                <div id="player-info">玩家：<span id="display-name"></span></div>
+                <div id="score-display">分數：<span id="score">0</span></div>
+                <div id="timer-display">時間：<span id="timer">03:00</span></div>
+                <div id="inventory">鑰匙：<span id="key-status">❌</span></div>
+            </div>
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- Mobile Controls -->
+            <div id="mobile-controls">
+                <div class="joystick-row">
+                    <button id="btn-up" class="control-btn">⬆️</button>
+                </div>
+                <div class="joystick-row">
+                    <button id="btn-left" class="control-btn">⬅️</button>
+                    <button id="btn-down" class="control-btn">⬇️</button>
+                    <button id="btn-right" class="control-btn">➡️</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- End Screen -->
+        <div id="end-screen" class="screen hidden">
+            <h1 id="end-title">遊戲結束</h1>
+            <p id="end-message"></p>
+            <div class="stats">
+                <p>你的分數：<span id="final-score">0</span></p>
+            </div>
+            <button id="restart-btn">再玩一次</button>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,198 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none; /* 防止反白文字 */
+    -webkit-user-select: none;
+}
+
+body {
+    background-color: #2b1b3d; /* 深紫色背景 */
+    color: #fff;
+    font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden; /* 防止滾動 */
+    touch-action: none; /* 防止手機瀏覽器預設手勢 */
+}
+
+#game-container {
+    width: 100%;
+    max-width: 600px;
+    height: 100vh;
+    max-height: 800px;
+    background-color: #1a0f24;
+    position: relative;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    text-align: center;
+    background-color: rgba(43, 27, 61, 0.95);
+    z-index: 10;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Typography & Colors */
+h1 {
+    color: #ff8c00; /* 萬聖節橘色 */
+    font-size: 28px;
+    margin-bottom: 20px;
+    text-shadow: 2px 2px 4px #000;
+}
+
+h3 {
+    color: #ffd700;
+    margin-bottom: 10px;
+}
+
+p {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.emoji {
+    font-size: 20px;
+}
+
+/* Inputs & Buttons */
+.input-group {
+    margin: 20px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+input[type="text"] {
+    padding: 10px;
+    font-size: 18px;
+    border-radius: 8px;
+    border: 2px solid #ff8c00;
+    background-color: #fff;
+    color: #333;
+    text-align: center;
+    margin-top: 10px;
+    width: 80%;
+    max-width: 250px;
+}
+
+button {
+    background-color: #ff8c00;
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    transition: transform 0.1s, background-color 0.2s;
+    margin-top: 20px;
+}
+
+button:active {
+    transform: scale(0.95);
+    background-color: #e67e00;
+}
+
+.instructions {
+    background-color: rgba(0,0,0,0.3);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    width: 100%;
+}
+
+/* Game Screen */
+#game-screen {
+    justify-content: flex-start;
+    padding: 0;
+    background-color: transparent;
+}
+
+#hud {
+    width: 100%;
+    height: 50px;
+    background-color: #110918;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 2px solid #ff8c00;
+    z-index: 5;
+}
+
+#player-info { color: #fff; }
+#score-display { color: #ff8c00; }
+#timer-display { color: #fff; }
+#inventory { color: #ffd700; }
+
+canvas {
+    background-color: #3d2b4a; /* 地板顏色 */
+    display: block;
+    width: 100%;
+    /* 高度將由 JS 動態計算，留出空間給 HUD 和控制鍵 */
+    flex-grow: 1;
+}
+
+/* Mobile Controls */
+#mobile-controls {
+    width: 100%;
+    height: 150px;
+    background-color: #110918;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-top: 2px solid #ff8c00;
+}
+
+.joystick-row {
+    display: flex;
+    justify-content: center;
+}
+
+.control-btn {
+    width: 50px;
+    height: 50px;
+    margin: 5px;
+    padding: 0;
+    font-size: 24px;
+    border-radius: 10px;
+    background-color: #4a2e6b;
+}
+
+.control-btn:active {
+    background-color: #ff8c00;
+}
+
+/* 隱藏手機控制，如果是在電腦上 (簡單的 media query) */
+@media (min-width: 768px) {
+    #mobile-controls {
+        display: none;
+    }
+    #game-container {
+        height: 80vh;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+}
