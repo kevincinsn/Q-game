@@ -1,0 +1,13 @@
+{
+  "name": "rumi-halloween-escape",
+  "version": "1.0.0",
+  "description": "Rumi Halloween Escape Game",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "playwright": "^1.40.0"
+  }
+}

@@ -16,6 +16,10 @@
                 <label for="player-name">請輸入你的名字代號：</label>
                 <input type="text" id="player-name" placeholder="例如：小紅帽" maxlength="10">
             </div>
+            <div class="save-code-actions">
+                <button id="copy-code-start-btn" class="secondary-btn">📋 複製存檔碼</button>
+                <button id="load-code-start-btn" class="secondary-btn">📥 輸入存檔碼</button>
+            </div>
             <div class="instructions">
                 <h3>🎮 怎麼玩？</h3>
                 <p>💻 電腦：使用鍵盤方向鍵 (上下左右) 移動。</p>
@@ -56,6 +60,9 @@
             <p id="end-message"></p>
             <div class="stats">
                 <p>你的分數：<span id="final-score">0</span></p>
+            </div>
+            <div class="save-code-actions">
+                <button id="copy-code-end-btn" class="secondary-btn">📋 複製存檔碼</button>
             </div>
             <button id="restart-btn">再玩一次</button>
         </div>
