@@ -57,35 +57,280 @@ const player = {
 };
 
 // ==========================================
+// 純邏輯抽離 (純函式，無 DOM / Audio 依賴)
+// ==========================================
+const GameLogic = {
+    // 地圖與遊戲狀態初始化
+    createInitialState: function(customMapData) {
+        const sourceMap = customMapData || mapData;
+        return {
+            map: sourceMap.map(row => [...row]),
+            player: {
+                x: 1,
+                y: 1,
+                movingToX: 1,
+                movingToY: 1,
+                pixelX: 1 * TILE_SIZE,
+                pixelY: 1 * TILE_SIZE,
+                emoji: '🧙‍♀️'
+            },
+            score: 0,
+            timeLeft: GAME_TIME,
+            hasKey: false,
+            isGameRunning: false,
+            isWin: false,
+            isGameOver: false
+        };
+    },
+
+    // 嘗試移動玩家
+    tryMove: function(state, dx, dy) {
+        // 若尚未移動到目標格子，不接收下一次移動
+        if (state.player.x !== state.player.movingToX || state.player.y !== state.player.movingToY) {
+            return { moved: false, reason: 'moving' };
+        }
+
+        const newX = state.player.x + dx;
+        const newY = state.player.y + dy;
+
+        // 邊界檢查
+        if (newX < 0 || newX >= COLS || newY < 0 || newY >= ROWS) {
+            return { moved: false, reason: 'boundary' };
+        }
+
+        const targetTile = state.map[newY][newX];
+
+        // 撞牆
+        if (targetTile === 1) {
+            return { moved: false, reason: 'wall' };
+        }
+
+        // 門
+        if (targetTile === 5) {
+            if (state.hasKey) {
+                state.player.movingToX = newX;
+                state.player.movingToY = newY;
+                return { moved: true, triggerWin: true };
+            } else {
+                return { moved: false, reason: 'locked_door' };
+            }
+        }
+
+        state.player.movingToX = newX;
+        state.player.movingToY = newY;
+        return { moved: true };
+    },
+
+    // 檢查與處理抵達格子的碰撞與道具收集
+    checkCollision: function(state) {
+        if (Math.abs(state.player.pixelX - state.player.movingToX * TILE_SIZE) < 1 &&
+            Math.abs(state.player.pixelY - state.player.movingToY * TILE_SIZE) < 1) {
+
+            state.player.x = state.player.movingToX;
+            state.player.y = state.player.movingToY;
+            state.player.pixelX = state.player.x * TILE_SIZE;
+            state.player.pixelY = state.player.y * TILE_SIZE;
+
+            const tile = state.map[state.player.y][state.player.x];
+            let itemCollected = null;
+
+            if (tile === 2) { // 糖果
+                state.score += 10;
+                state.map[state.player.y][state.player.x] = 0;
+                itemCollected = 'candy';
+            } else if (tile === 3) { // 南瓜
+                state.score += 30;
+                state.map[state.player.y][state.player.x] = 0;
+                itemCollected = 'pumpkin';
+            } else if (tile === 4) { // 鑰匙
+                state.hasKey = true;
+                state.score += 50;
+                state.map[state.player.y][state.player.x] = 0;
+                itemCollected = 'key';
+            }
+
+            return { itemCollected: itemCollected, tile: tile };
+        }
+        return { itemCollected: null };
+    },
+
+    // 推進時間 1 秒
+    tickTimer: function(state) {
+        if (!state.isGameRunning) return { expired: false };
+        state.timeLeft--;
+        if (state.timeLeft <= 0) {
+            state.isGameRunning = false;
+            state.isGameOver = true;
+            return { expired: true, isWin: false };
+        }
+        return { expired: false, timeLeft: state.timeLeft };
+    },
+
+    // 計算最終分數 (獲勝加上時間獎勵)
+    calculateFinalScore: function(score, timeLeft, isWin) {
+        return isWin ? score + (timeLeft * 2) : score;
+    }
+};
+
+// ==========================================
+// 跨裝置存檔碼編解碼 (Base32 + Checksum)
+// ==========================================
+const SaveCodeManager = {
+    ALPHABET: "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567",
+
+    bytesToBase32: function(bytes) {
+        let bits = 0;
+        let value = 0;
+        let output = "";
+        for (let i = 0; i < bytes.length; i++) {
+            value = (value << 8) | bytes[i];
+            bits += 8;
+            while (bits >= 5) {
+                output += this.ALPHABET[(value >>> (bits - 5)) & 31];
+                bits -= 5;
+            }
+        }
+        if (bits > 0) {
+            output += this.ALPHABET[(value << (5 - bits)) & 31];
+        }
+        return output;
+    },
+
+    base32ToBytes: function(str) {
+        str = str.toUpperCase().replace(/[^A-Z2-7]/g, "");
+        let bits = 0;
+        let value = 0;
+        const bytes = [];
+        for (let i = 0; i < str.length; i++) {
+            const idx = this.ALPHABET.indexOf(str[i]);
+            if (idx === -1) continue;
+            value = (value << 5) | idx;
+            bits += 5;
+            if (bits >= 8) {
+                bytes.push((value >>> (bits - 8)) & 255);
+                bits -= 8;
+            }
+        }
+        return new Uint8Array(bytes);
+    },
+
+    calculateChecksum: function(bytes) {
+        let sum1 = 0;
+        let sum2 = 0;
+        for (let i = 0; i < bytes.length; i++) {
+            sum1 = (sum1 + bytes[i]) % 255;
+            sum2 = (sum2 + sum1) % 255;
+        }
+        return (sum2 << 8) | sum1;
+    },
+
+    generateSaveCode: function({ name, score, progress }) {
+        const safeName = name || "小英雄";
+        let nameBytes;
+        if (typeof TextEncoder !== 'undefined') {
+            nameBytes = new TextEncoder().encode(safeName);
+        } else {
+            nameBytes = Buffer.from(safeName, 'utf8');
+        }
+        const trimmedNameBytes = nameBytes.subarray(0, 10);
+
+        const headerByte = (1 << 4) | (progress & 0x0F);
+        const scoreByte1 = (score >> 8) & 0xFF;
+        const scoreByte2 = score & 0xFF;
+        const nameLenByte = trimmedNameBytes.length & 0xFF;
+
+        const payload = new Uint8Array(1 + 2 + 1 + trimmedNameBytes.length);
+        payload[0] = headerByte;
+        payload[1] = scoreByte1;
+        payload[2] = scoreByte2;
+        payload[3] = nameLenByte;
+        payload.set(trimmedNameBytes, 4);
+
+        const checksum = this.calculateChecksum(payload);
+        const fullBuffer = new Uint8Array(payload.length + 2);
+        fullBuffer.set(payload, 0);
+        fullBuffer[payload.length] = (checksum >> 8) & 0xFF;
+        fullBuffer[payload.length + 1] = checksum & 0xFF;
+
+        return this.bytesToBase32(fullBuffer);
+    },
+
+    parseSaveCode: function(code) {
+        if (!code || typeof code !== "string" || code.trim() === "") {
+            return { success: false, error: "存檔碼不能為空喔！" };
+        }
+        const cleanCode = code.trim().toUpperCase().replace(/[\s-]/g, "");
+        if (!/^[A-Z2-7]+$/.test(cleanCode)) {
+            return { success: false, error: "存檔碼格式不正確，請檢查是否有打錯字喔！" };
+        }
+        const bytes = this.base32ToBytes(cleanCode);
+        if (bytes.length < 7) {
+            return { success: false, error: "存檔碼長度不足，請確認是否複製完整喔！" };
+        }
+
+        const payload = bytes.subarray(0, bytes.length - 2);
+        const checksumInCode = (bytes[bytes.length - 2] << 8) | bytes[bytes.length - 1];
+        const expectedChecksum = this.calculateChecksum(payload);
+
+        if (checksumInCode !== expectedChecksum) {
+            return { success: false, error: "存檔碼驗證失敗，請確認存檔碼是否正確！" };
+        }
+
+        const headerByte = payload[0];
+        const version = (headerByte >> 4) & 0x0F;
+        if (version !== 1) {
+            return { success: false, error: "存檔碼版本不相容！" };
+        }
+        const progress = headerByte & 0x0F;
+        const score = (payload[1] << 8) | payload[2];
+        const nameLen = payload[3];
+
+        if (payload.length < 4 + nameLen) {
+            return { success: false, error: "存檔碼資料損壞，無法讀取！" };
+        }
+
+        const nameBytes = payload.subarray(4, 4 + nameLen);
+        let name;
+        if (typeof TextDecoder !== 'undefined') {
+            name = new TextDecoder().decode(nameBytes);
+        } else {
+            name = Buffer.from(nameBytes).toString('utf8');
+        }
+
+        return {
+            success: true,
+            data: { name, score, progress }
+        };
+    }
+};
+
+// ==========================================
 // 語音與音效模組
 // ==========================================
 const AudioManager = {
     bgmOscillator: null,
     bgmGainNode: null,
     init: function() {
-        if (!audioCtx) {
+        if (typeof window !== 'undefined' && !audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtx = new AudioContext();
         }
     },
-    // 播放稍微緊張刺激但不恐怖的配樂
+
     playBGM: function() {
         if (!audioCtx) return;
-        this.stopBGM(); // 確保不會重複播放
+        this.stopBGM();
 
         this.bgmOscillator = audioCtx.createOscillator();
         this.bgmGainNode = audioCtx.createGain();
 
         this.bgmOscillator.type = 'sine';
-        this.bgmGainNode.gain.value = 0.05; // 音量小一點，不刺耳
+        this.bgmGainNode.gain.value = 0.05;
 
         this.bgmOscillator.connect(this.bgmGainNode);
         this.bgmGainNode.connect(audioCtx.destination);
 
-        // 簡單的兩個音符交替，製造緊張但不恐怖的氛圍
         const now = audioCtx.currentTime;
-        // 使用 setInterval 動態調整頻率，但考慮到 Web Audio API 的特性，
-        // 我們直接設定一個長期的頻率自動化曲線
         for (let i = 0; i < 200; i++) {
             this.bgmOscillator.frequency.setValueAtTime(300, now + i);
             this.bgmOscillator.frequency.setValueAtTime(350, now + i + 0.5);
@@ -93,6 +338,7 @@ const AudioManager = {
 
         this.bgmOscillator.start(now);
     },
+
     stopBGM: function() {
         if (this.bgmOscillator) {
             try {
@@ -102,17 +348,17 @@ const AudioManager = {
             this.bgmOscillator = null;
         }
     },
-    // 播放模擬魯米的語音
+
     speak: function(text) {
-        if ('speechSynthesis' in window) {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'zh-TW';
-            utterance.pitch = 1.5; // 音調高一點，可愛風
-            utterance.rate = 1.1; // 講話稍快一點點
+            utterance.pitch = 1.5;
+            utterance.rate = 1.1;
             window.speechSynthesis.speak(utterance);
         }
     },
-    // 播放簡單音效
+
     playSound: function(type) {
         if (!audioCtx) return;
         const osc = audioCtx.createOscillator();
@@ -160,55 +406,139 @@ const AudioManager = {
 };
 
 // ==========================================
-// 存檔 API (本地 LocalStorage，方便移轉雲端)
+// 存檔 API (本地 LocalStorage，支援跨裝置存檔碼)
 // ==========================================
 const SaveManager = {
     saveScore: function(name, finalScore) {
-        let scores = JSON.parse(localStorage.getItem('rumiHalloweenScores')) || [];
+        if (typeof localStorage === 'undefined') return;
+        let scores = [];
+        try {
+            scores = JSON.parse(localStorage.getItem('rumiHalloweenScores')) || [];
+        } catch (e) {
+            scores = [];
+        }
         scores.push({
             name: name,
             score: finalScore,
             date: new Date().toISOString()
         });
-        // 只保留前10名最高分
         scores.sort((a, b) => b.score - a.score);
         scores = scores.slice(0, 10);
         localStorage.setItem('rumiHalloweenScores', JSON.stringify(scores));
+    },
+
+    getHighScore: function(name) {
+        if (typeof localStorage === 'undefined') return 0;
+        try {
+            const scores = JSON.parse(localStorage.getItem('rumiHalloweenScores')) || [];
+            if (name) {
+                const userScores = scores.filter(s => s.name === name);
+                return userScores.length > 0 ? Math.max(...userScores.map(s => s.score)) : 0;
+            }
+            return scores.length > 0 ? Math.max(...scores.map(s => s.score)) : 0;
+        } catch (e) {
+            return 0;
+        }
     }
 };
 
 // ==========================================
-// 遊戲核心邏輯
+// 遊戲 UI / Event Handlers
 // ==========================================
 function initGame() {
+    if (typeof document === 'undefined') return;
+
     canvas = document.getElementById('gameCanvas');
     ctx = canvas.getContext('2d');
 
-    // 設定 Canvas 大小為響應式，但內部繪圖比例固定
-    const containerWidth = document.getElementById('game-screen').clientWidth;
-    // 假設螢幕較小，找出適合的大小，但不超過 TILE_SIZE * COLS
-    const size = Math.min(containerWidth, window.innerHeight * 0.6, TILE_SIZE * COLS);
     canvas.width = TILE_SIZE * COLS;
     canvas.height = TILE_SIZE * ROWS;
-    // 使用 CSS 縮放 canvas 以符合畫面
     canvas.style.width = '100%';
     canvas.style.maxWidth = (TILE_SIZE * COLS) + 'px';
 
-    // 綁定事件
+    // 按鈕綁定
     document.getElementById('start-btn').addEventListener('click', startGame);
     document.getElementById('restart-btn').addEventListener('click', resetGame);
+
+    // 存檔碼按鈕綁定
+    const copyBtnStart = document.getElementById('copy-code-start-btn');
+    const loadBtnStart = document.getElementById('load-code-start-btn');
+    const copyBtnEnd = document.getElementById('copy-code-end-btn');
+
+    if (copyBtnStart) copyBtnStart.addEventListener('click', handleCopySaveCode);
+    if (loadBtnStart) loadBtnStart.addEventListener('click', handleLoadSaveCode);
+    if (copyBtnEnd) copyBtnEnd.addEventListener('click', handleCopySaveCode);
 
     // 鍵盤控制
     window.addEventListener('keydown', handleKeyDown);
 
     // 手機虛擬按鍵
-    document.getElementById('btn-up').addEventListener('touchstart', (e) => { e.preventDefault(); tryMove(0, -1); });
-    document.getElementById('btn-down').addEventListener('touchstart', (e) => { e.preventDefault(); tryMove(0, 1); });
-    document.getElementById('btn-left').addEventListener('touchstart', (e) => { e.preventDefault(); tryMove(-1, 0); });
-    document.getElementById('btn-right').addEventListener('touchstart', (e) => { e.preventDefault(); tryMove(1, 0); });
+    const btnUp = document.getElementById('btn-up');
+    const btnDown = document.getElementById('btn-down');
+    const btnLeft = document.getElementById('btn-left');
+    const btnRight = document.getElementById('btn-right');
+
+    const handleTouch = (dx, dy) => (e) => {
+        e.preventDefault();
+        tryMove(dx, dy);
+    };
+
+    if (btnUp) {
+        btnUp.addEventListener('touchstart', handleTouch(0, -1));
+        btnUp.addEventListener('click', () => tryMove(0, -1));
+    }
+    if (btnDown) {
+        btnDown.addEventListener('touchstart', handleTouch(0, 1));
+        btnDown.addEventListener('click', () => tryMove(0, 1));
+    }
+    if (btnLeft) {
+        btnLeft.addEventListener('touchstart', handleTouch(-1, 0));
+        btnLeft.addEventListener('click', () => tryMove(-1, 0));
+    }
+    if (btnRight) {
+        btnRight.addEventListener('touchstart', handleTouch(1, 0));
+        btnRight.addEventListener('click', () => tryMove(1, 0));
+    }
 
     // 電腦滑鼠點擊移動支援
     canvas.addEventListener('mousedown', handleMouseClick);
+}
+
+function handleCopySaveCode() {
+    const inputName = document.getElementById('player-name') ? document.getElementById('player-name').value.trim() : "";
+    const name = playerName || inputName || "小英雄";
+    const highScore = Math.max(score, SaveManager.getHighScore(name));
+    const code = SaveCodeManager.generateSaveCode({ name: name, score: highScore, progress: 1 });
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(code).then(() => {
+            alert(`已複製存檔碼！\n存檔碼：${code}\n可以保存在文字檔或傳到其他裝置還原喔！`);
+        }).catch(() => {
+            prompt("請複製以下存檔碼：", code);
+        });
+    } else {
+        prompt("請複製以下存檔碼：", code);
+    }
+}
+
+function handleLoadSaveCode() {
+    const inputCode = prompt("請輸入您的 12~20 位存檔碼：");
+    if (inputCode === null) return; // 使用者取消
+
+    const result = SaveCodeManager.parseSaveCode(inputCode);
+    if (!result.success) {
+        alert(result.error);
+        return;
+    }
+
+    const { name, score: loadedScore } = result.data;
+    if (document.getElementById('player-name')) {
+        document.getElementById('player-name').value = name;
+    }
+    playerName = name;
+    SaveManager.saveScore(name, loadedScore);
+
+    alert(`🎉 成功讀取存檔！\n玩家：${name}\n最高分記錄：${loadedScore} 分\n直接點擊「開始遊戲」即可開玩！`);
 }
 
 function handleMouseClick(e) {
@@ -217,15 +547,12 @@ function handleMouseClick(e) {
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
-    // 取得點擊的像素座標並轉換為對應的內部 canvas 座標
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    // 轉換為網格座標
     const gridX = Math.floor(x / TILE_SIZE);
     const gridY = Math.floor(y / TILE_SIZE);
 
-    // 判斷點擊位置與玩家目前位置的相對方向，決定移動方向 (一次只能移動一步)
     if (gridX > player.x) tryMove(1, 0);
     else if (gridX < player.x) tryMove(-1, 0);
     else if (gridY > player.y) tryMove(0, 1);
@@ -240,7 +567,6 @@ function startGame() {
     playerName = nameInput !== "" ? nameInput : "小英雄";
     document.getElementById('display-name').innerText = playerName;
 
-    // UI 切換
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
 
@@ -263,7 +589,6 @@ function resetGameData() {
     player.pixelX = player.x * TILE_SIZE;
     player.pixelY = player.y * TILE_SIZE;
 
-    // 複製地圖
     currentMap = mapData.map(row => [...row]);
 
     updateHUD();
@@ -283,9 +608,14 @@ function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
     timerInterval = setInterval(() => {
         if (!isGameRunning) return;
-        timeLeft--;
+
+        const state = { isGameRunning, timeLeft };
+        const result = GameLogic.tickTimer(state);
+        timeLeft = state.timeLeft;
+
         updateHUD();
-        if (timeLeft <= 0) {
+
+        if (result.expired) {
             endGame(false);
         } else if (timeLeft === 60) {
             AudioManager.speak("加油！只剩下一分鐘囉！");
@@ -312,76 +642,52 @@ function handleKeyDown(e) {
 }
 
 function tryMove(dx, dy) {
-    // 確保前一次移動已完成才允許下一次指令 (簡單格子移動)
-    if (player.x !== player.movingToX || player.y !== player.movingToY) return;
+    const tempState = {
+        map: currentMap,
+        player: player,
+        hasKey: hasKey
+    };
 
-    const newX = player.x + dx;
-    const newY = player.y + dy;
-
-    // 邊界檢查
-    if (newX < 0 || newX >= COLS || newY < 0 || newY >= ROWS) return;
-
-    const targetTile = currentMap[newY][newX];
-
-    // 撞牆
-    if (targetTile === 1) return;
-
-    // 檢查門
-    if (targetTile === 5) {
-        if (hasKey) {
-            player.movingToX = newX;
-            player.movingToY = newY;
-            setTimeout(() => endGame(true), 300); // 延遲一下讓玩家走進去
-        } else {
+    const res = GameLogic.tryMove(tempState, dx, dy);
+    if (!res.moved) {
+        if (res.reason === 'locked_door') {
             AudioManager.speak("哎呀，門鎖住了，需要找鑰匙喔！");
-            return; // 沒鑰匙不能走
         }
-    } else {
-        // 可以走
-        player.movingToX = newX;
-        player.movingToY = newY;
+        return;
+    }
+
+    if (res.triggerWin) {
+        setTimeout(() => endGame(true), 300);
     }
 }
 
 function checkCollision() {
-    // 當玩家抵達新格子時檢查
-    if (Math.abs(player.pixelX - player.movingToX * TILE_SIZE) < 1 &&
-        Math.abs(player.pixelY - player.movingToY * TILE_SIZE) < 1) {
+    const tempState = {
+        map: currentMap,
+        player: player,
+        score: score,
+        hasKey: hasKey
+    };
 
-        player.x = player.movingToX;
-        player.y = player.movingToY;
-        player.pixelX = player.x * TILE_SIZE;
-        player.pixelY = player.y * TILE_SIZE;
+    const res = GameLogic.checkCollision(tempState);
+    score = tempState.score;
+    hasKey = tempState.hasKey;
 
-        const tile = currentMap[player.y][player.x];
-
-        if (tile === 2) { // 糖果
-            score += 10;
-            currentMap[player.y][player.x] = 0;
-            AudioManager.playSound('coin');
-            updateHUD();
-        } else if (tile === 3) { // 南瓜
-            score += 30;
-            currentMap[player.y][player.x] = 0;
-            AudioManager.playSound('coin');
-            updateHUD();
-        } else if (tile === 4) { // 鑰匙
-            hasKey = true;
-            score += 50;
-            currentMap[player.y][player.x] = 0;
-            AudioManager.playSound('key');
-            AudioManager.speak("太棒了！找到鑰匙了，快去開門吧！");
-            updateHUD();
-        }
+    if (res.itemCollected === 'candy' || res.itemCollected === 'pumpkin') {
+        AudioManager.playSound('coin');
+        updateHUD();
+    } else if (res.itemCollected === 'key') {
+        AudioManager.playSound('key');
+        AudioManager.speak("太棒了！找到鑰匙了，快去開門吧！");
+        updateHUD();
     }
 }
 
 function update() {
-    // 平滑移動邏輯
     const targetPixelX = player.movingToX * TILE_SIZE;
     const targetPixelY = player.movingToY * TILE_SIZE;
 
-    const speed = TILE_SIZE * 0.15; // 移動速度
+    const speed = TILE_SIZE * 0.15;
 
     if (player.pixelX < targetPixelX) player.pixelX = Math.min(player.pixelX + speed, targetPixelX);
     if (player.pixelX > targetPixelX) player.pixelX = Math.max(player.pixelX - speed, targetPixelX);
@@ -392,10 +698,8 @@ function update() {
 }
 
 function draw() {
-    // 清除畫布
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 繪製地圖
     for (let r = 0; r < ROWS; r++) {
         for (let c = 0; c < COLS; c++) {
             const tile = currentMap[r][c];
@@ -403,7 +707,6 @@ function draw() {
             const py = r * TILE_SIZE;
 
             if (tile === 1) {
-                // 牆壁 (暗紫色磚塊風格)
                 ctx.fillStyle = '#4a2e6b';
                 ctx.fillRect(px, py, TILE_SIZE, TILE_SIZE);
                 ctx.strokeStyle = '#2b1b3d';
@@ -424,9 +727,7 @@ function draw() {
         }
     }
 
-    // 繪製玩家 (魯米)
     ctx.font = `${TILE_SIZE * 0.7}px Arial`;
-    // emoji 微調置中
     ctx.fillText(player.emoji, player.pixelX + TILE_SIZE*0.05, player.pixelY + TILE_SIZE*0.8);
 }
 
@@ -443,15 +744,10 @@ function endGame(isWin) {
     clearInterval(timerInterval);
     AudioManager.stopBGM();
 
-    // 結算畫面 UI
     document.getElementById('game-screen').classList.add('hidden');
     document.getElementById('end-screen').classList.remove('hidden');
 
-    // 時間獎勵
-    let finalScore = score;
-    if (isWin) {
-        finalScore += timeLeft * 2; // 剩餘每秒加2分
-    }
+    const finalScore = GameLogic.calculateFinalScore(score, timeLeft, isWin);
     document.getElementById('final-score').innerText = finalScore;
 
     SaveManager.saveScore(playerName, finalScore);
@@ -472,5 +768,20 @@ function endGame(isWin) {
     }
 }
 
-// 初始化
-window.onload = initGame;
+if (typeof window !== 'undefined') {
+    window.onload = initGame;
+}
+
+// 供 Node.js 單元測試匯出
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        GameLogic,
+        SaveCodeManager,
+        SaveManager,
+        mapData,
+        TILE_SIZE,
+        ROWS,
+        COLS,
+        GAME_TIME
+    };
+}
