@@ -370,6 +370,145 @@ const MiniGames = (() => {
         next();
     }
 
+    // ---------- 5. 角色數獨 ----------
+    // 規則:每一橫排、每一直排、每一個粗框小區塊裡,每個角色(或數字)都只能出現一次
+    function sudoku() {
+        open('角色數獨');
+        levelPicker('每一排、每一行、每個粗框裡,每個角色都只能出現一次!', [['簡單 4×4 角色', 4], ['挑戰 6×6 數字', 6]], startSudoku);
+        say('角色數獨!每一排、每一行、每個粗框裡,每個角色都只能出現一次喔!');
+    }
+
+    // 產生完整解答:基本排列 + 打亂(符號、帶內的列、帶、組內的欄、組),一定合法
+    function makeSudoku(n) {
+        const br = 2, bc = n / 2; // 4×4:2×2 小區塊;6×6:2 列 × 3 欄小區塊
+        const sym = shuffle([...Array(n).keys()]);
+        const bands = shuffle([...Array(n / br).keys()]);
+        const rows = [].concat(...bands.map(b => shuffle([...Array(br).keys()]).map(r => b * br + r)));
+        const stacks = shuffle([...Array(n / bc).keys()]);
+        const cols = [].concat(...stacks.map(st => shuffle([...Array(bc).keys()]).map(c => st * bc + c)));
+        const grid = rows.map(r => cols.map(c => sym[(bc * (r % br) + Math.floor(r / br) + c) % n]));
+        return { grid, br, bc };
+    }
+
+    function sudokuConflicts(board, n, br, bc) {
+        const bad = new Set();
+        const mark = (cells) => {
+            const seen = {};
+            cells.forEach(([r, c]) => {
+                const v = board[r][c];
+                if (v === null) return;
+                (seen[v] = seen[v] || []).push(r * n + c);
+            });
+            Object.values(seen).forEach(list => { if (list.length > 1) list.forEach(i => bad.add(i)); });
+        };
+        for (let i = 0; i < n; i++) {
+            mark([...Array(n).keys()].map(c => [i, c]));
+            mark([...Array(n).keys()].map(r => [r, i]));
+        }
+        for (let r0 = 0; r0 < n; r0 += br) {
+            for (let c0 = 0; c0 < n; c0 += bc) {
+                const cells = [];
+                for (let r = r0; r < r0 + br; r++) for (let c = c0; c < c0 + bc; c++) cells.push([r, c]);
+                mark(cells);
+            }
+        }
+        return bad;
+    }
+
+    function startSudoku(n) {
+        area.innerHTML = '';
+        const { grid: solution, br, bc } = makeSudoku(n);
+        const holes = n === 4 ? 8 : 18;
+        const board = solution.map(row => row.slice());
+        const given = solution.map(row => row.map(() => true));
+        shuffle([...Array(n * n).keys()]).slice(0, holes).forEach(i => {
+            board[Math.floor(i / n)][i % n] = null;
+            given[Math.floor(i / n)][i % n] = false;
+        });
+        const faces = ['rumi', 'zoey', 'mira', 'tiger'];
+        const show = (v) => n === 4
+            ? `<img src="${IMG(CAST[faces[v]].img)}" alt="${CAST[faces[v]].name}">`
+            : `<span>${v + 1}</span>`;
+        let sel = null, hints = 0;
+        const t0 = Date.now();
+        const timer = setInterval(() => { statusEl.textContent = `⏱ ${Math.floor((Date.now() - t0) / 1000)} 秒 · 提示 ${hints} 次`; }, 1000);
+        cleanup = () => clearInterval(timer);
+        statusEl.textContent = '⏱ 0 秒';
+
+        const gridEl = el('div', 'sdk-grid sdk-' + n);
+        gridEl.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+        gridEl.style.gridTemplateRows = `repeat(${n}, 1fr)`;
+        const pad = el('div', 'sdk-pad sdk-pad-' + n);
+        const tools = el('div', 'mini-row');
+
+        function render() {
+            const bad = sudokuConflicts(board, n, br, bc);
+            gridEl.innerHTML = '';
+            for (let r = 0; r < n; r++) {
+                for (let c = 0; c < n; c++) {
+                    const v = board[r][c];
+                    const cls = ['sdk-cell'];
+                    if (given[r][c]) cls.push('given');
+                    if (sel && sel[0] === r && sel[1] === c) cls.push('sel');
+                    if (bad.has(r * n + c)) cls.push('bad');
+                    if (c % bc === bc - 1 && c !== n - 1) cls.push('edge-r');
+                    if (r % br === br - 1 && r !== n - 1) cls.push('edge-b');
+                    const b = el('button', cls.join(' '), v === null ? '' : show(v));
+                    b.setAttribute('aria-label', `第 ${r + 1} 排第 ${c + 1} 格`);
+                    if (!given[r][c]) b.addEventListener('click', () => { sel = [r, c]; render(); });
+                    gridEl.appendChild(b);
+                }
+            }
+            const full = board.every(row => row.every(v => v !== null));
+            if (full && bad.size === 0) win();
+        }
+        function put(v) {
+            if (!sel) { say('先點一個空格喔!'); return; }
+            board[sel[0]][sel[1]] = v;
+            tone(v === null ? 330 : 520 + (v || 0) * 60, 90);
+            render();
+        }
+        let done = false;
+        function win() {
+            if (done) return;
+            done = true;
+            clearInterval(timer);
+            const secs = Math.floor((Date.now() - t0) / 1000);
+            const isBest = best('sudoku' + n, secs, true);
+            sfx('win');
+            say(`數獨完成了!你用了 ${secs} 秒,真是聰明!`);
+            setTimeout(() => {
+                area.innerHTML = '';
+                finishPanel(['🔢 數獨完成!', `用了 ${secs} 秒,提示 ${hints} 次` + (isBest ? '(新紀錄!)' : `(最佳 ${best('sudoku' + n)} 秒)`)], () => startSudoku(n));
+            }, 700);
+        }
+
+        for (let v = 0; v < n; v++) {
+            const b = el('button', 'sdk-key', show(v));
+            b.addEventListener('click', () => put(v));
+            pad.appendChild(b);
+        }
+        const erase = el('button', 'secondary-btn', '🧽 擦掉');
+        erase.addEventListener('click', () => put(null));
+        const hint = el('button', 'secondary-btn', '💡 提示');
+        hint.addEventListener('click', () => {
+            const empty = [];
+            for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (board[r][c] !== solution[r][c]) empty.push([r, c]);
+            if (!empty.length) return;
+            const [r, c] = empty[rand(empty.length)];
+            board[r][c] = solution[r][c];
+            given[r][c] = true;
+            hints++;
+            sel = null;
+            render();
+        });
+        tools.appendChild(erase); tools.appendChild(hint);
+        area.appendChild(gridEl);
+        area.appendChild(pad);
+        area.appendChild(tools);
+        render();
+    }
+
     function init() {
         area = document.getElementById('mini-area');
         titleEl = document.getElementById('mini-title');
@@ -387,6 +526,7 @@ const MiniGames = (() => {
         bind('mg-simon', simon);
         bind('mg-puzzle', puzzle);
         bind('mg-math', math);
+        bind('mg-sudoku', sudoku);
         const menuBtn = document.getElementById('menu-btn');
         if (menuBtn) menuBtn.addEventListener('click', () => {
             document.getElementById('end-screen').classList.add('hidden');
@@ -394,7 +534,7 @@ const MiniGames = (() => {
         });
     }
 
-    return { init, shuffle, who };
+    return { init, shuffle, who, makeSudoku, sudokuConflicts };
 })();
 
 if (typeof window !== 'undefined') {

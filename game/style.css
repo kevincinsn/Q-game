@@ -602,8 +602,70 @@ details.instructions[open] summary { margin-bottom: 8px; }
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
     font-size: 14px;
     text-align: left;
+    pointer-events: none; /* 提示框不擋住下面的按鈕 */
 }
 
 #toast[hidden] { display: none; }
 #toast img { width: 44px; height: 44px; border-radius: 50%; }
 .toast-emoji { font-size: 34px; }
+
+/* 角色數獨 */
+.game-menu .menu-card:last-child:nth-child(even) { grid-column: 1 / -1; }
+
+.sdk-grid {
+    display: grid;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+    border: 3px solid #ffd700;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #110918;
+}
+
+.sdk-cell {
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #3d2b4a;
+    border: 1px solid #5c3c7e;
+    color: #fff;
+    font-size: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+}
+
+.sdk-cell img { width: 82%; height: 82%; border-radius: 50%; }
+.sdk-cell.given { background: #2b1b3d; color: #ffd700; cursor: default; }
+.sdk-cell.sel { background: #ff8c00; }
+.sdk-cell.bad { box-shadow: inset 0 0 0 3px #ff5a7a; }
+.sdk-cell.edge-r { border-right: 3px solid #ffd700; }
+.sdk-cell.edge-b { border-bottom: 3px solid #ffd700; }
+.sdk-cell:active { transform: none; }
+
+.sdk-pad {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.sdk-key {
+    margin: 0;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 14px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sdk-key img { width: 44px; height: 44px; border-radius: 50%; }
+
+.sdk-pad-6 { flex-wrap: nowrap; gap: 6px; }
+.sdk-pad-6 .sdk-key { width: 48px; height: 52px; }
