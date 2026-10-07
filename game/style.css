@@ -6,6 +6,8 @@
     -webkit-user-select: none;
 }
 
+html { height: 100%; }
+
 body {
     background-color: #2b1b3d; /* 深紫色背景 */
     color: #fff;
@@ -13,7 +15,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    height: 100%;
     overflow: hidden; /* 防止滾動 */
     touch-action: none; /* 防止手機瀏覽器預設手勢 */
 }
@@ -22,7 +24,8 @@ body {
     width: 100%;
     max-width: 600px;
     height: 100vh;
-    max-height: 800px;
+    height: 100dvh;
+    max-height: 900px;
     background-color: #1a0f24;
     position: relative;
     box-shadow: 0 0 20px rgba(0,0,0,0.5);
@@ -39,11 +42,14 @@ body {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    justify-content: safe center; /* 小螢幕放不下時從頂端開始排,可上下捲動 */
     align-items: center;
-    padding: 20px;
+    padding: 16px;
     text-align: center;
     background-color: rgba(43, 27, 61, 0.95);
     z-index: 10;
+    overflow-y: auto;
+    touch-action: pan-y;
 }
 
 .hidden {
@@ -167,53 +173,108 @@ button.secondary-btn:hover {
 #timer-display { color: #fff; }
 #inventory { color: #ffd700; }
 
+#canvas-wrap {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none; /* 讓手指滑動交給遊戲 */
+}
+
 canvas {
     background-color: #3d2b4a; /* 地板顏色 */
     display: block;
-    width: 100%;
-    /* 高度將由 JS 動態計算，留出空間給 HUD 和控制鍵 */
-    flex-grow: 1;
+    /* 寬高由 JS 依可用空間計算(保持正方形) */
 }
 
-/* Mobile Controls */
+.cast {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.cast img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #ff8c00;
+    background: #7fa3d6;
+}
+
+/* Mobile Controls:十字方向鍵 */
 #mobile-controls {
     width: 100%;
-    height: 150px;
+    flex: 0 0 auto;
     background-color: #110918;
     display: flex;
     flex-direction: column;
-    justify-content: center;
     align-items: center;
     border-top: 2px solid #ff8c00;
+    padding: 6px 16px calc(10px + env(safe-area-inset-bottom, 0px));
 }
 
-.joystick-row {
-    display: flex;
-    justify-content: center;
+.swipe-hint {
+    font-size: 12px;
+    color: #c9b3e6;
+    margin: 0 0 4px 0;
 }
+
+#dpad {
+    display: grid;
+    grid-template-columns: repeat(3, 64px);
+    grid-template-rows: repeat(3, 56px);
+    gap: 6px;
+    grid-template-areas:
+        ". up ."
+        "left . right"
+        ". down .";
+}
+
+#btn-up { grid-area: up; }
+#btn-left { grid-area: left; }
+#btn-right { grid-area: right; }
+#btn-down { grid-area: down; }
 
 .control-btn {
-    width: 50px;
-    height: 50px;
-    margin: 5px;
+    width: 100%;
+    height: 100%;
+    margin: 0;
     padding: 0;
-    font-size: 24px;
-    border-radius: 10px;
+    font-size: 26px;
+    border-radius: 14px;
     background-color: #4a2e6b;
+    color: #ffd700;
+    touch-action: none;
 }
 
-.control-btn:active {
+.control-btn:active, .control-btn.pressed {
     background-color: #ff8c00;
+    color: #fff;
 }
 
 /* 隱藏手機控制，如果是在電腦上 (簡單的 media query) */
-@media (min-width: 768px) {
+@media (hover: hover) and (pointer: fine) {
     #mobile-controls {
         display: none;
     }
+}
+
+@media (min-width: 768px) {
     #game-container {
         height: 80vh;
         border-radius: 10px;
         overflow: hidden;
     }
+}
+
+/* 矮螢幕(手機)把開始畫面排緊一點,讓「開始遊戲」不用捲就看得到 */
+@media (max-height: 760px) {
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    p { font-size: 14px; margin-bottom: 6px; }
+    .instructions { padding: 10px; margin: 6px 0; }
+    .instructions p { margin-bottom: 4px; }
+    #start-btn { margin-top: 8px; padding: 12px 28px; }
 }
