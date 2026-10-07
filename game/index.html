@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>魯米的萬聖節大逃脫</title>
+    <title>HUNTR/X 遊戲樂園</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
-            <h1>🎃 魯米的萬聖節大逃脫 👻</h1>
+            <h1>✨ HUNTR/X 遊戲樂園 ✨</h1>
             <div class="cast">
-                <img src="assets/rumi.png" alt="魯米">
-                <img src="assets/tiger.png" alt="老虎朋友">
-                <img src="assets/bird.png" alt="小鳥朋友">
+                <img src="assets/zoey.png" alt="柔伊">
+                <img src="assets/rumi2.png" alt="魯米">
+                <img src="assets/mira.png" alt="米拉">
             </div>
-            <p>你好呀！我是魯米！來幫我逃出這個可愛的萬聖節密室吧！</p>
+            <p>你好呀！我們是 HUNTR/X!今天想玩哪一個遊戲呢?</p>
             <div class="input-group">
                 <label for="player-name">請輸入你的名字代號：</label>
                 <input type="text" id="player-name" placeholder="例如：小紅帽" maxlength="10">
@@ -25,15 +25,21 @@
                 <button id="copy-code-start-btn" class="secondary-btn">📋 複製存檔碼</button>
                 <button id="load-code-start-btn" class="secondary-btn">📥 輸入存檔碼</button>
             </div>
-            <div class="instructions">
-                <h3>🎮 怎麼玩？</h3>
+            <div class="game-menu">
+                <button id="start-btn" class="menu-card"><span class="menu-icon">🏰</span>迷宮大逃脫</button>
+                <button id="mg-memory" class="menu-card"><span class="menu-icon">🃏</span>翻翻記憶卡</button>
+                <button id="mg-simon" class="menu-card"><span class="menu-icon">🎤</span>跟著唱</button>
+                <button id="mg-puzzle" class="menu-card"><span class="menu-icon">🧩</span>舞台拼圖</button>
+                <button id="mg-math" class="menu-card"><span class="menu-icon">🧮</span>數學幫幫忙</button>
+            </div>
+            <details class="instructions">
+                <summary>🏰 迷宮怎麼玩?</summary>
                 <p>💻 電腦：使用鍵盤方向鍵 (上下左右) 移動。</p>
                 <p>📱 手機/平板：按下方的方向鍵(按住會一直走),或在迷宮上用手指滑動。</p>
                 <p>收集 <span class="emoji">🍬</span> 糖果 和 <span class="emoji">🎃</span> 南瓜 可以加分！</p>
                 <p>找到拿著鑰匙的 <b>老虎朋友</b>,再到 <b>小鳥朋友</b> 守著的門 <span class="emoji">🚪</span> 逃出去喔！</p>
                 <p>⏰ 你有 3 分鐘的時間！</p>
-            </div>
-            <button id="start-btn">開始遊戲</button>
+            </details>
         </div>
 
         <!-- Game Screen -->
@@ -71,8 +77,19 @@
                 <button id="copy-code-end-btn" class="secondary-btn">📋 複製存檔碼</button>
             </div>
             <button id="restart-btn">再玩一次</button>
+            <button id="menu-btn" class="secondary-btn">回遊戲選單</button>
+        </div>
+        <!-- 益智小遊戲共用畫面 -->
+        <div id="mini-screen" class="screen hidden">
+            <div id="mini-header">
+                <button id="mini-back" class="secondary-btn" aria-label="回遊戲選單">← 選單</button>
+                <h2 id="mini-title"></h2>
+                <span id="mini-status"></span>
+            </div>
+            <div id="mini-area"></div>
         </div>
     </div>
     <script src="game.js"></script>
+    <script src="minigames.js"></script>
 </body>
 </html>
