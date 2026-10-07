@@ -349,14 +349,32 @@ const AudioManager = {
         }
     },
 
-    speak: function(text) {
-        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'zh-TW';
-            utterance.pitch = 1.5;
-            utterance.rate = 1.1;
-            window.speechSynthesis.speak(utterance);
+    // 挑裝置上最自然的中文女聲(iPhone:美佳;Windows:曉臻;Android/Chrome:Google 國語)
+    voice: null,
+    pickVoice: function() {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null;
+        const voices = window.speechSynthesis.getVoices() || [];
+        const zh = voices.filter(v => /zh[-_](TW|Hant)/i.test(v.lang));
+        const pool = zh.length ? zh : voices.filter(v => /^zh/i.test(v.lang));
+        const preferred = [/Mei-?Jia|美佳/i, /Premium|Enhanced|Natural|Neural|增強/i, /HsiaoChen|曉臻|HsiaoYu|曉雨/i, /Google/i];
+        for (const re of preferred) {
+            const v = pool.find(x => re.test(x.name));
+            if (v) return v;
         }
+        return pool[0] || null;
+    },
+
+    speak: function(text) {
+        if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+        if (!this.voice) this.voice = this.pickVoice();
+        window.speechSynthesis.cancel(); // 不要一句疊一句
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'zh-TW';
+        if (this.voice) utterance.voice = this.voice;
+        // 音調稍高、速度稍慢:聽起來像活潑的大姊姊,而不是尖銳的機器聲
+        utterance.pitch = 1.2;
+        utterance.rate = 0.95;
+        window.speechSynthesis.speak(utterance);
     },
 
     playSound: function(type) {
@@ -472,36 +490,63 @@ function initGame() {
     // 鍵盤控制
     window.addEventListener('keydown', handleKeyDown);
 
-    // 手機虛擬按鍵
-    const btnUp = document.getElementById('btn-up');
-    const btnDown = document.getElementById('btn-down');
-    const btnLeft = document.getElementById('btn-left');
-    const btnRight = document.getElementById('btn-right');
-
-    const handleTouch = (dx, dy) => (e) => {
-        e.preventDefault();
-        tryMove(dx, dy);
+    // 手機方向鍵:按一下走一格,按住會一直走
+    const bindHold = (id, dx, dy) => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        let holdTimer = null;
+        const stop = () => {
+            clearInterval(holdTimer);
+            holdTimer = null;
+            btn.classList.remove('pressed');
+        };
+        btn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            stop();
+            btn.classList.add('pressed');
+            tryMove(dx, dy);
+            holdTimer = setInterval(() => tryMove(dx, dy), 140);
+        });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
+        btn.addEventListener('contextmenu', (e) => e.preventDefault());
     };
+    bindHold('btn-up', 0, -1);
+    bindHold('btn-down', 0, 1);
+    bindHold('btn-left', -1, 0);
+    bindHold('btn-right', 1, 0);
 
-    if (btnUp) {
-        btnUp.addEventListener('touchstart', handleTouch(0, -1));
-        btnUp.addEventListener('click', () => tryMove(0, -1));
-    }
-    if (btnDown) {
-        btnDown.addEventListener('touchstart', handleTouch(0, 1));
-        btnDown.addEventListener('click', () => tryMove(0, 1));
-    }
-    if (btnLeft) {
-        btnLeft.addEventListener('touchstart', handleTouch(-1, 0));
-        btnLeft.addEventListener('click', () => tryMove(-1, 0));
-    }
-    if (btnRight) {
-        btnRight.addEventListener('touchstart', handleTouch(1, 0));
-        btnRight.addEventListener('click', () => tryMove(1, 0));
-    }
+    // 迷宮上滑動手指移動(拖著不放可以連續轉彎),輕點則朝點的方向走一格
+    const wrap = document.getElementById('canvas-wrap') || canvas;
+    const SWIPE_STEP = 26; // 手指移動多少像素算走一格
+    let swipe = null;
+    wrap.addEventListener('pointerdown', (e) => {
+        if (!isGameRunning) return;
+        e.preventDefault();
+        swipe = { x: e.clientX, y: e.clientY, moved: false };
+    });
+    wrap.addEventListener('pointermove', (e) => {
+        if (!swipe) return;
+        const dx = e.clientX - swipe.x;
+        const dy = e.clientY - swipe.y;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_STEP) return;
+        if (Math.abs(dx) > Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
+        else tryMove(0, dy > 0 ? 1 : -1);
+        swipe.x = e.clientX;
+        swipe.y = e.clientY;
+        swipe.moved = true;
+    });
+    const endSwipe = (e) => {
+        if (swipe && !swipe.moved && e.type === 'pointerup') handleMouseClick(e);
+        swipe = null;
+    };
+    wrap.addEventListener('pointerup', endSwipe);
+    wrap.addEventListener('pointercancel', endSwipe);
 
-    // 電腦滑鼠點擊移動支援
-    canvas.addEventListener('mousedown', handleMouseClick);
+    window.addEventListener('resize', resizeCanvas);
+    loadSprites();
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.onvoiceschanged = () => { AudioManager.voice = AudioManager.pickVoice(); };
+    }
 }
 
 function handleCopySaveCode() {
@@ -559,6 +604,38 @@ function handleMouseClick(e) {
     else if (gridY < player.y) tryMove(0, -1);
 }
 
+function resizeCanvas() {
+    if (!canvas) return;
+    const wrap = document.getElementById('canvas-wrap');
+    if (!wrap) return;
+    const side = Math.floor(Math.min(wrap.clientWidth, wrap.clientHeight));
+    if (side > 0) {
+        canvas.style.width = side + 'px';
+        canvas.style.height = side + 'px';
+    }
+}
+
+// 角色圖片(魯米、老虎朋友、小鳥朋友);圖片沒載入時退回 emoji
+const sprites = {};
+function loadSprites() {
+    ['rumi', 'tiger', 'bird'].forEach(name => {
+        const img = new Image();
+        img.onload = () => { sprites[name] = img; };
+        img.src = 'assets/' + name + '.png';
+    });
+}
+
+function drawSprite(name, fallbackEmoji, px, py, scale) {
+    const size = TILE_SIZE * (scale || 0.9);
+    const off = (TILE_SIZE - size) / 2;
+    if (sprites[name]) {
+        ctx.drawImage(sprites[name], px + off, py + off, size, size);
+    } else {
+        ctx.font = `${TILE_SIZE * 0.7}px Arial`;
+        ctx.fillText(fallbackEmoji, px + TILE_SIZE*0.05, py + TILE_SIZE*0.8);
+    }
+}
+
 function startGame() {
     AudioManager.init();
     AudioManager.playBGM();
@@ -569,6 +646,7 @@ function startGame() {
 
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    resizeCanvas();
 
     resetGameData();
     AudioManager.speak(`你好 ${playerName}！我是魯米，準備好一起逃脫了嗎？GO！`);
@@ -597,6 +675,7 @@ function resetGameData() {
 function resetGame() {
     document.getElementById('end-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
+    resizeCanvas();
     resetGameData();
     AudioManager.playBGM();
     isGameRunning = true;
@@ -678,7 +757,7 @@ function checkCollision() {
         updateHUD();
     } else if (res.itemCollected === 'key') {
         AudioManager.playSound('key');
-        AudioManager.speak("太棒了！找到鑰匙了，快去開門吧！");
+        AudioManager.speak("太棒了！老虎朋友把鑰匙給你了，快去找小鳥朋友守著的門吧！");
         updateHUD();
     }
 }
@@ -718,17 +797,20 @@ function draw() {
                 ctx.font = `${TILE_SIZE * 0.6}px Arial`;
                 ctx.fillText('🎃', px + TILE_SIZE*0.1, py + TILE_SIZE*0.7);
             } else if (tile === 4) {
-                ctx.font = `${TILE_SIZE * 0.6}px Arial`;
-                ctx.fillText('🗝️', px + TILE_SIZE*0.1, py + TILE_SIZE*0.7);
+                // 老虎朋友拿著鑰匙
+                drawSprite('tiger', '🗝️', px, py, 0.95);
+                ctx.font = `${TILE_SIZE * 0.4}px Arial`;
+                ctx.fillText('🗝️', px + TILE_SIZE*0.55, py + TILE_SIZE*0.98);
             } else if (tile === 5) {
                 ctx.font = `${TILE_SIZE * 0.7}px Arial`;
                 ctx.fillText('🚪', px + TILE_SIZE*0.05, py + TILE_SIZE*0.8);
+                // 小鳥朋友守在門邊
+                if (sprites.bird) ctx.drawImage(sprites.bird, px + TILE_SIZE*0.5, py - TILE_SIZE*0.05, TILE_SIZE*0.5, TILE_SIZE*0.5);
             }
         }
     }
 
-    ctx.font = `${TILE_SIZE * 0.7}px Arial`;
-    ctx.fillText(player.emoji, player.pixelX + TILE_SIZE*0.05, player.pixelY + TILE_SIZE*0.8);
+    drawSprite('rumi', player.emoji, player.pixelX, player.pixelY, 0.95);
 }
 
 function gameLoop() {

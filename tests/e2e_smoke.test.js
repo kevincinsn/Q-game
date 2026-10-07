@@ -56,7 +56,7 @@ test('Playwright Smoke Tests - Desktop (1280x800) & Mobile (390x844)', async (t)
 
         // Mobile test
         {
-            const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+            const page = await browser.newPage({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
             const errors = [];
             page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
             page.on('pageerror', err => errors.push(err.message));

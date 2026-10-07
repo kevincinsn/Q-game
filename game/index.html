@@ -11,6 +11,11 @@
         <!-- Start Screen -->
         <div id="start-screen" class="screen">
             <h1>🎃 魯米的萬聖節大逃脫 👻</h1>
+            <div class="cast">
+                <img src="assets/rumi.png" alt="魯米">
+                <img src="assets/tiger.png" alt="老虎朋友">
+                <img src="assets/bird.png" alt="小鳥朋友">
+            </div>
             <p>你好呀！我是魯米！來幫我逃出這個可愛的萬聖節密室吧！</p>
             <div class="input-group">
                 <label for="player-name">請輸入你的名字代號：</label>
@@ -23,9 +28,9 @@
             <div class="instructions">
                 <h3>🎮 怎麼玩？</h3>
                 <p>💻 電腦：使用鍵盤方向鍵 (上下左右) 移動。</p>
-                <p>📱 手機/平板：使用螢幕下方的虛擬搖桿，或是直接點擊畫面移動。</p>
+                <p>📱 手機/平板：按下方的方向鍵(按住會一直走),或在迷宮上用手指滑動。</p>
                 <p>收集 <span class="emoji">🍬</span> 糖果 和 <span class="emoji">🎃</span> 南瓜 可以加分！</p>
-                <p>找到 <span class="emoji">🗝️</span> 鑰匙 才能打開門 <span class="emoji">🚪</span> 逃出去喔！</p>
+                <p>找到拿著鑰匙的 <b>老虎朋友</b>,再到 <b>小鳥朋友</b> 守著的門 <span class="emoji">🚪</span> 逃出去喔！</p>
                 <p>⏰ 你有 3 分鐘的時間！</p>
             </div>
             <button id="start-btn">開始遊戲</button>
@@ -39,17 +44,18 @@
                 <div id="timer-display">時間：<span id="timer">03:00</span></div>
                 <div id="inventory">鑰匙：<span id="key-status">❌</span></div>
             </div>
-            <canvas id="gameCanvas"></canvas>
+            <div id="canvas-wrap">
+                <canvas id="gameCanvas"></canvas>
+            </div>
 
             <!-- Mobile Controls -->
             <div id="mobile-controls">
-                <div class="joystick-row">
-                    <button id="btn-up" class="control-btn">⬆️</button>
-                </div>
-                <div class="joystick-row">
-                    <button id="btn-left" class="control-btn">⬅️</button>
-                    <button id="btn-down" class="control-btn">⬇️</button>
-                    <button id="btn-right" class="control-btn">➡️</button>
+                <p class="swipe-hint">在迷宮上滑動手指也可以移動喔</p>
+                <div id="dpad">
+                    <button id="btn-up" class="control-btn" aria-label="上">▲</button>
+                    <button id="btn-left" class="control-btn" aria-label="左">◀</button>
+                    <button id="btn-right" class="control-btn" aria-label="右">▶</button>
+                    <button id="btn-down" class="control-btn" aria-label="下">▼</button>
                 </div>
             </div>
         </div>
