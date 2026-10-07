@@ -26,6 +26,7 @@
                 <button id="load-code-start-btn" class="secondary-btn">📥 輸入存檔碼</button>
             </div>
             <div class="game-menu">
+                <button id="room-btn" class="menu-card room-entry"><span class="menu-icon">🏠</span>Q 的專屬遊戲室</button>
                 <button id="start-btn" class="menu-card"><span class="menu-icon">🏰</span>迷宮大逃脫</button>
                 <button id="mg-memory" class="menu-card"><span class="menu-icon">🃏</span>翻翻記憶卡</button>
                 <button id="mg-simon" class="menu-card"><span class="menu-icon">🎤</span>跟著唱</button>
@@ -88,8 +89,19 @@
             </div>
             <div id="mini-area"></div>
         </div>
+        <!-- Q 的專屬遊戲室 -->
+        <div id="room-screen" class="screen hidden">
+            <div id="room-header">
+                <button id="room-back" class="secondary-btn" aria-label="回遊戲選單">← 選單</button>
+                <h2>🏠 Q 的專屬遊戲室</h2>
+            </div>
+            <div id="room-area"></div>
+        </div>
+
+        <div id="toast" role="status" hidden></div>
     </div>
     <script src="game.js"></script>
     <script src="minigames.js"></script>
+    <script src="qroom.js"></script>
 </body>
 </html>

@@ -833,6 +833,7 @@ function endGame(isWin) {
     document.getElementById('final-score').innerText = finalScore;
 
     SaveManager.saveScore(playerName, finalScore);
+    if (typeof QRoom !== 'undefined') QRoom.report(isWin ? 'mazeWin' : 'maze', finalScore);
 
     const titleEl = document.getElementById('end-title');
     const msgEl = document.getElementById('end-message');
