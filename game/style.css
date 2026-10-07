@@ -484,3 +484,126 @@ details.instructions[open] summary { margin-bottom: 8px; }
 @media (prefers-reduced-motion: reduce) {
     .mem-face, .simon-pad, .math-demon { transition: none; }
 }
+
+/* ==========================================
+   Q 的專屬遊戲室
+   ========================================== */
+#room-btn.menu-card {
+    grid-column: 1 / -1;
+    background: linear-gradient(160deg, #ffd700, #ff8c00);
+    color: #2b1b3d;
+}
+
+#room-screen { justify-content: flex-start; padding: 0; }
+
+#room-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background-color: #110918;
+    border-bottom: 2px solid #ffd700;
+}
+
+#room-header h2 { font-size: 18px; color: #ffd700; }
+
+#room-area {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+
+.room-hero { text-align: center; }
+.room-buddy { width: 120px; height: 120px; border-radius: 50%; border: 4px solid #ffd700; box-shadow: 0 0 18px rgba(255, 215, 0, 0.5); }
+.room-hello { font-size: 17px; margin-top: 8px; }
+.room-sub { font-size: 13px; color: #c9b3e6; margin: 4px 0; }
+.room-pick { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+
+.room-pick-btn {
+    margin: 0;
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #4a2e6b;
+    border: 2px solid transparent;
+    overflow: hidden;
+    box-shadow: none;
+}
+
+.room-pick-btn img { width: 100%; height: 100%; }
+.room-pick-btn.on { border-color: #ffd700; }
+
+.room-card {
+    width: 100%;
+    max-width: 440px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    padding: 12px 14px;
+}
+
+.room-card h3 { text-align: left; }
+
+.room-trophies {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 6px 12px;
+    text-align: left;
+    font-size: 15px;
+}
+
+.room-trophies dd { color: #ffd700; font-weight: bold; font-variant-numeric: tabular-nums; text-align: right; }
+.room-trophies dd.none { color: #8f7aa8; font-weight: normal; }
+
+.room-stickers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+
+.room-sticker {
+    background: #2b1b3d;
+    border: 2px dashed #5c3c7e;
+    border-radius: 12px;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+}
+
+.room-sticker img { width: 56px; height: 56px; border-radius: 50%; }
+.room-sticker b { font-size: 13px; }
+.room-sticker small { font-size: 11px; color: #c9b3e6; line-height: 1.3; }
+.room-sticker.got { border: 2px solid #ffd700; background: #3d2b4a; }
+.room-emoji { font-size: 40px; line-height: 56px; }
+.room-lock { width: 56px; height: 56px; border-radius: 50%; background: #4a2e6b; color: #8f7aa8; font-size: 28px; line-height: 56px; }
+
+#toast {
+    position: absolute;
+    left: 50%;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    transform: translateX(-50%);
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #ffd700;
+    color: #2b1b3d;
+    padding: 8px 16px 8px 8px;
+    border-radius: 30px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    font-size: 14px;
+    text-align: left;
+}
+
+#toast[hidden] { display: none; }
+#toast img { width: 44px; height: 44px; border-radius: 50%; }
+.toast-emoji { font-size: 34px; }

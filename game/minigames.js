@@ -55,6 +55,7 @@ const MiniGames = (() => {
         try { old = JSON.parse(localStorage.getItem(k)); } catch (e) { old = null; }
         if (value === undefined) return old;
         const better = old === null || (lowerIsBetter ? value < old : value > old);
+        if (typeof QRoom !== 'undefined') QRoom.report(key, value);
         if (better) { try { localStorage.setItem(k, JSON.stringify(value)); } catch (e) {} }
         return better;
     }
