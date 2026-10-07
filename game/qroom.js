@@ -30,7 +30,9 @@ const QRoom = (() => {
         { id: 'puz4', img: 'demon_pink.png', title: '拼圖達人', how: '拼好 4×4 舞台拼圖' },
         { id: 'math10', emoji: '🧮', title: '數學小天才', how: '10 以內數學 10 題全對' },
         { id: 'math20', emoji: '🏅', title: '數學大天才', how: '20 以內數學 10 題全對' },
-        { id: 'allGames', emoji: '🏆', title: '全能玩家', how: '5 種遊戲都玩過' }
+        { id: 'allGames', emoji: '🏆', title: '全能玩家', how: '5 種遊戲都玩過' },
+        { id: 'sdk4', emoji: '🔢', title: '數獨新手', how: '完成 4×4 角色數獨' },
+        { id: 'sdk6', emoji: '🧠', title: '數獨高手', how: '完成 6×6 數字數獨' }
     ];
 
     const TROPHIES = [
@@ -41,7 +43,9 @@ const QRoom = (() => {
         { label: '🧩 拼圖 3×3', key: 'puzzle3', unit: '步', low: true },
         { label: '🧩 拼圖 4×4', key: 'puzzle4', unit: '步', low: true },
         { label: '🧮 數學 10 以內', key: 'math10', unit: '題對' },
-        { label: '🧮 數學 20 以內', key: 'math20', unit: '題對' }
+        { label: '🧮 數學 20 以內', key: 'math20', unit: '題對' },
+        { label: '🔢 數獨 4×4', key: 'sudoku4', unit: '秒', low: true },
+        { label: '🔢 數獨 6×6', key: 'sudoku6', unit: '秒', low: true }
     ];
 
     const GAMES = ['maze', 'memory', 'simon', 'puzzle', 'math'];
@@ -102,6 +106,8 @@ const QRoom = (() => {
         if (key === 'puzzle4') unlock(s, 'puz4');
         if (key === 'math10' && value >= 10) unlock(s, 'math10');
         if (key === 'math20' && value >= 10) unlock(s, 'math20');
+        if (key === 'sudoku4') unlock(s, 'sdk4');
+        if (key === 'sudoku6') unlock(s, 'sdk6');
         if (GAMES.every(g => s.played.includes(g))) unlock(s, 'allGames');
         save(s);
         if (!document.getElementById('room-screen').classList.contains('hidden')) render();
