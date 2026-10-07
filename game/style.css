@@ -278,3 +278,209 @@ canvas {
     .instructions p { margin-bottom: 4px; }
     #start-btn { margin-top: 8px; padding: 12px 28px; }
 }
+
+/* ==========================================
+   遊戲選單 + 益智小遊戲
+   ========================================== */
+.game-menu {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+    margin: 8px 0;
+}
+
+.menu-card {
+    margin: 0;
+    padding: 14px 8px;
+    font-size: 18px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(160deg, #ff8c00, #e0569b);
+}
+
+#start-btn.menu-card {
+    grid-column: 1 / -1;
+    background: linear-gradient(160deg, #ff8c00, #c25a00);
+}
+
+.menu-icon { font-size: 28px; }
+
+details.instructions summary {
+    cursor: pointer;
+    color: #ffd700;
+    font-weight: bold;
+}
+
+details.instructions[open] summary { margin-bottom: 8px; }
+
+#end-screen #menu-btn { margin-top: 12px; }
+
+#mini-screen {
+    justify-content: flex-start;
+    padding: 0;
+}
+
+#mini-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: #110918;
+    border-bottom: 2px solid #ff8c00;
+}
+
+#mini-header h2 {
+    flex: 1;
+    font-size: 18px;
+    color: #ff8c00;
+    text-align: left;
+}
+
+#mini-status {
+    font-size: 13px;
+    color: #ffd700;
+    font-variant-numeric: tabular-nums;
+}
+
+#mini-area {
+    flex: 1;
+    width: 100%;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.mini-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.mini-row button { margin-top: 0; }
+
+.mini-intro, .mini-finish { text-align: center; margin-top: 24px; }
+.mini-finish h2 { color: #ff8c00; font-size: 26px; margin-bottom: 8px; }
+
+/* 翻翻記憶卡 */
+.mem-grid {
+    display: grid;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+}
+
+.mem-card {
+    margin: 0;
+    padding: 0;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    background: #5c3c7e;
+    border: 2px solid #9c67cf;
+    position: relative;
+    overflow: hidden;
+}
+
+.mem-back {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: #ffd700;
+}
+
+.mem-face {
+    position: absolute;
+    inset: 6%;
+    width: 88%;
+    height: 88%;
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.mem-card.open { background: #2b1b3d; }
+.mem-card.open .mem-back { opacity: 0; }
+.mem-card.open .mem-face { opacity: 1; transform: scale(1); }
+.mem-card.done { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
+
+/* 跟著唱 */
+.simon-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    width: 100%;
+    max-width: 360px;
+}
+
+.simon-pad {
+    margin: 0;
+    padding: 10px;
+    border-radius: 20px;
+    background: #4a2e6b;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    font-size: 16px;
+    transition: transform 0.1s, background-color 0.1s;
+}
+
+.simon-pad img { width: 80%; max-width: 110px; border-radius: 50%; }
+.simon-pad.lit { background: #ffd700; color: #2b1b3d; transform: scale(1.06); }
+
+/* 舞台拼圖 */
+.puz-board {
+    display: grid;
+    gap: 3px;
+    width: 100%;
+    max-width: 360px;
+    aspect-ratio: 1;
+    background: #110918;
+    padding: 3px;
+    border-radius: 10px;
+}
+
+.puz-tile {
+    margin: 0;
+    padding: 0;
+    border-radius: 6px;
+    background-color: #5c3c7e;
+    background-repeat: no-repeat;
+    box-shadow: none;
+}
+
+.puz-tile.empty { background: transparent; cursor: default; }
+.puz-preview { width: 60%; max-width: 220px; border-radius: 10px; border: 2px solid #ffd700; }
+
+/* 數學幫幫忙 */
+.math-stage {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.math-stage img { width: 96px; height: 96px; border-radius: 50%; border: 3px solid #ff8c00; }
+.math-vs { font-size: 28px; }
+.math-demon { transition: transform 0.3s, filter 0.3s; }
+.math-demon.happy { transform: rotate(-10deg) scale(1.1); filter: drop-shadow(0 0 12px #ffd700); }
+.math-q { font-size: 40px; font-weight: bold; color: #fff; font-variant-numeric: tabular-nums; }
+.math-choice { min-width: 80px; font-size: 26px; }
+.math-choice.right { background: #ffd700; color: #2b1b3d; }
+.math-choice.wrong { background: #6b5a7a; }
+
+@media (prefers-reduced-motion: reduce) {
+    .mem-face, .simon-pad, .math-demon { transition: none; }
+}
