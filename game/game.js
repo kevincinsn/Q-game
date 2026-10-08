@@ -495,6 +495,21 @@ function initGame() {
     // 鍵盤控制
     window.addEventListener('keydown', handleKeyDown);
 
+    // 觸控輸入:iPad/舊版 Safari 不一定支援 Pointer Events,所以直接用最通用的 touch 事件,
+    // 滑鼠(電腦)用 mouse 事件。touch 事件有 preventDefault,瀏覽器不會再補發 mouse 事件,不會重複觸發。
+    const pointOf = (e) => (e.changedTouches && e.changedTouches[0]) || e;
+    const bindPress = (el, onDown, onMove, onUp) => {
+        let mouseDown = false;
+        el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(pointOf(e), e); }, { passive: false });
+        el.addEventListener('touchmove', (e) => { e.preventDefault(); if (onMove) onMove(pointOf(e), e); }, { passive: false });
+        el.addEventListener('touchend', (e) => { e.preventDefault(); onUp(pointOf(e), e); }, { passive: false });
+        el.addEventListener('touchcancel', (e) => { onUp(pointOf(e), e); });
+        el.addEventListener('mousedown', (e) => { mouseDown = true; onDown(e, e); });
+        el.addEventListener('mousemove', (e) => { if (mouseDown && onMove) onMove(e, e); });
+        window.addEventListener('mouseup', (e) => { if (mouseDown) { mouseDown = false; onUp(e, e); } });
+        el.addEventListener('contextmenu', (e) => e.preventDefault());
+    };
+
     // 手機方向鍵:按一下走一格,按住會一直走
     const bindHold = (id, dx, dy) => {
         const btn = document.getElementById(id);
@@ -505,15 +520,12 @@ function initGame() {
             holdTimer = null;
             btn.classList.remove('pressed');
         };
-        btn.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
+        bindPress(btn, () => {
             stop();
             btn.classList.add('pressed');
             tryMove(dx, dy);
             holdTimer = setInterval(() => tryMove(dx, dy), 140);
-        });
-        ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => btn.addEventListener(ev, stop));
-        btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        }, null, stop);
     };
     bindHold('btn-up', 0, -1);
     bindHold('btn-down', 0, 1);
@@ -524,28 +536,23 @@ function initGame() {
     const wrap = document.getElementById('canvas-wrap') || canvas;
     const SWIPE_STEP = 26; // 手指移動多少像素算走一格
     let swipe = null;
-    wrap.addEventListener('pointerdown', (e) => {
+    bindPress(wrap, (p) => {
         if (!isGameRunning) return;
-        e.preventDefault();
-        swipe = { x: e.clientX, y: e.clientY, moved: false };
-    });
-    wrap.addEventListener('pointermove', (e) => {
+        swipe = { x: p.clientX, y: p.clientY, moved: false };
+    }, (p) => {
         if (!swipe) return;
-        const dx = e.clientX - swipe.x;
-        const dy = e.clientY - swipe.y;
+        const dx = p.clientX - swipe.x;
+        const dy = p.clientY - swipe.y;
         if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_STEP) return;
         if (Math.abs(dx) > Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
         else tryMove(0, dy > 0 ? 1 : -1);
-        swipe.x = e.clientX;
-        swipe.y = e.clientY;
+        swipe.x = p.clientX;
+        swipe.y = p.clientY;
         swipe.moved = true;
-    });
-    const endSwipe = (e) => {
-        if (swipe && !swipe.moved && e.type === 'pointerup') handleMouseClick(e);
+    }, (p) => {
+        if (swipe && !swipe.moved) handleMouseClick(p);
         swipe = null;
-    };
-    wrap.addEventListener('pointerup', endSwipe);
-    wrap.addEventListener('pointercancel', endSwipe);
+    });
 
     window.addEventListener('resize', resizeCanvas);
     loadSprites();
