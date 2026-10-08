@@ -487,6 +487,11 @@ function initGame() {
     if (loadBtnStart) loadBtnStart.addEventListener('click', handleLoadSaveCode);
     if (copyBtnEnd) copyBtnEnd.addEventListener('click', handleCopySaveCode);
 
+    // 有觸控螢幕(手機/iPad)就顯示方向鍵;純電腦才隱藏
+    if (!(navigator.maxTouchPoints > 0 || 'ontouchstart' in window)) {
+        document.documentElement.classList.add('no-touch');
+    }
+
     // 鍵盤控制
     window.addEventListener('keydown', handleKeyDown);
 

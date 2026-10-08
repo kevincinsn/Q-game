@@ -255,11 +255,23 @@ canvas {
     color: #fff;
 }
 
-/* 隱藏手機控制，如果是在電腦上 (簡單的 media query) */
-@media (hover: hover) and (pointer: fine) {
-    #mobile-controls {
-        display: none;
+/* 沒有觸控螢幕的電腦才隱藏方向鍵(iPad 接滑鼠/觸控板也會回報 hover,所以不能用 hover 判斷) */
+html.no-touch #mobile-controls {
+    display: none;
+}
+
+/* 平板:方向鍵放大,手指好按 */
+@media (min-width: 768px) {
+    #dpad {
+        grid-template-columns: repeat(3, 84px);
+        grid-template-rows: repeat(3, 72px);
+        gap: 8px;
     }
+}
+
+.control-btn {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 @media (min-width: 768px) {
